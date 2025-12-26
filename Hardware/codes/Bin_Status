@@ -1,0 +1,42 @@
+#ifndef STATUS_H
+#define STATUS_H
+
+typedef enum
+{
+    BIN_GREEN = 0,
+    BIN_YELLOW,
+    BIN_RED,
+    BIN_FAULT
+} BinStatus_t;
+
+BinStatus_t Get_Bin_Status(float fill_percentage);
+const char* BinStatus_ToString(BinStatus_t status);
+
+#endif
+
+#include "status.h"
+
+#define GREEN_THRESHOLD   60.0f
+#define YELLOW_THRESHOLD  80.0f
+
+BinStatus_t Get_Bin_Status(float fill_percentage)
+{
+    if (fill_percentage < GREEN_THRESHOLD)
+        return BIN_GREEN;
+    else if (fill_percentage < YELLOW_THRESHOLD)
+        return BIN_YELLOW;
+    else
+        return BIN_RED;
+}
+
+const char* BinStatus_ToString(BinStatus_t status)
+{
+    switch (status)
+    {
+        case BIN_GREEN:  return "GREEN";
+        case BIN_YELLOW: return "YELLOW";
+        case BIN_RED:    return "RED";
+        case BIN_FAULT:  return "FAULT";
+        default:         return "UNKNOWN";
+    }
+}
