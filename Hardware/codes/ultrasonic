@@ -1,1 +1,70 @@
+#ifndef ULTRASONIC_H
+#define ULTRASONIC_H
+
+#include "stm32l4xx_hal.h"
+
+void Ultrasonic_Trigger(void);
+float Ultrasonic_ReadDistance(void);
+void delay_us(uint16_t us);
+
+#endif
+
+
+
+#include "ultrasonic.h"
+
+extern TIM_HandleTypeDef htim2;
+
+static uint32_t ic_val1 = 0;
+static uint32_t ic_val2 = 0;
+static uint8_t is_first_capture = 0;
+static float distance = 0;
+
+void Ultrasonic_Trigger(void)
+{
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+    HAL_Delay(2);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+    delay_us(10);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+}
+
+float Ultrasonic_ReadDistance(void)
+{
+    HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
+    Ultrasonic_Trigger();
+    HAL_Delay(50);
+    return distance;
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
+    {
+        if (is_first_capture == 0)
+        {
+            ic_val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
+            is_first_capture = 1;
+            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_3, TIM_INPUTCHANNELPOLARITY_FALLING);
+        }
+        else
+        {
+            ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
+            __HAL_TIM_SET_COUNTER(htim, 0);
+            if (ic_val2 > ic_val1)
+                distance = (ic_val2 - ic_val1) * 0.034 / 2;
+            is_first_capture = 0;
+            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_3, TIM_INPUTCHANNELPOLARITY_RISING);
+            HAL_TIM_IC_Stop_IT(htim, TIM_CHANNEL_3);
+        }
+    }
+}
+
+void delay_us(uint16_t us)
+{
+    __HAL_TIM_SET_COUNTER(&htim6, 0);
+    HAL_TIM_Base_Start(&htim6);
+    while (__HAL_TIM_GET_COUNTER(&htim6) < us);
+    HAL_TIM_Base_Stop(&htim6);
+}
 
