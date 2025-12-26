@@ -1,0 +1,52 @@
+#ifndef FAULT_H
+#define FAULT_H
+
+#include <stdint.h>
+
+#define BIN_HEIGHT_CM     100.0f
+#define MIN_DISTANCE_CM   5.0f
+#define MAX_DELTA_CM      25.0f
+#define STUCK_COUNT_MAX   5
+
+typedef enum
+{
+    SENSOR_OK = 0,
+    SENSOR_INVALID_RANGE,
+    SENSOR_STUCK,
+    SENSOR_JUMP
+} SensorStatus_t;
+
+SensorStatus_t Fault_Check(float current_distance, float previous_distance);
+
+#endif
+
+
+#include "fault.h"
+
+static float last_distance = 0.0f;
+static uint8_t stuck_count = 0;
+
+SensorStatus_t Fault_Check(float current_distance, float previous_distance)
+{
+    if (current_distance < MIN_DISTANCE_CM || current_distance > BIN_HEIGHT_CM)
+        return SENSOR_INVALID_RANGE;
+
+    if (current_distance == last_distance)
+    {
+        stuck_count++;
+        if (stuck_count >= STUCK_COUNT_MAX)
+            return SENSOR_STUCK;
+    }
+    else
+        stuck_count = 0;
+
+    if (previous_distance > 0)
+    {
+        if ( (current_distance - previous_distance > MAX_DELTA_CM) ||
+             (previous_distance - current_distance > MAX_DELTA_CM) )
+            return SENSOR_JUMP;
+    }
+
+    last_distance = current_distance;
+    return SENSOR_OK;
+}
