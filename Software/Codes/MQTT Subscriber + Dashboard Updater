@@ -1,0 +1,90 @@
+import json
+import threading
+import paho.mqtt.client as mqtt
+from flask import Flask, render_template
+import folium
+from folium.plugins import MarkerCluster
+from geopy.distance import geodesic
+
+app = Flask(__name__)
+
+# Shared bin data dictionary
+bins = {}  # bin_id -> {'lat', 'lng', 'status', 'fill', 'battery'}
+
+# MQTT Setup for TTN
+MQTT_BROKER = "eu1.cloud.thethings.network"
+MQTT_PORT = 8883
+APP_ID = "<your-app-id>"
+ACCESS_KEY = "<your-access-key>"  # TTN console
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected to TTN MQTT broker")
+    client.subscribe(f"v3/{APP_ID}@ttn/devices/+/up")
+
+def on_message(client, userdata, msg):
+    data = json.loads(msg.payload.decode())
+    payload = data['uplink_message']['decoded_payload']
+    # Make sure your payload contains lat/lng
+    bins[payload['bin_id']] = payload
+    print(f"Received update: {payload['bin_id']}")
+
+# Start MQTT client in a separate thread
+def mqtt_thread():
+    client = mqtt.Client()
+    client.username_pw_set(username=APP_ID, password=ACCESS_KEY)
+    client.tls_set()
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    client.loop_forever()
+
+threading.Thread(target=mqtt_thread).start()
+
+# Route optimization: nearest neighbor for RED + YELLOW bins
+def optimize_route():
+    route_bins = [b for b in bins.values() if b['status'] in ['R','Y']]
+    if not route_bins:
+        return []
+    reds = [b for b in route_bins if b['status']=='R']
+    current = reds[0] if reds else route_bins[0]
+    route = [current]
+    remaining = [b for b in route_bins if b != current]
+
+    while remaining:
+        nearest = min(remaining, key=lambda b: geodesic(
+            (current['lat'], current['lng']), (b['lat'], b['lng'])
+        ).meters)
+        route.append(nearest)
+        remaining.remove(nearest)
+        current = nearest
+    return route
+
+# Flask route to serve dashboard
+@app.route("/")
+def index():
+    map_center = (12.9716,77.5946)  # city center
+    m = folium.Map(location=map_center, zoom_start=12)
+    marker_cluster = MarkerCluster().add_to(m)
+
+    # Add markers
+    for b in bins.values():
+        color = 'green' if b['status']=='G' else 'yellow' if b['status']=='Y' else 'red'
+        folium.CircleMarker(
+            location=(b['lat'], b['lng']),
+            radius=8,
+            color=color,
+            fill=True,
+            fill_color=color,
+            popup=f"Bin: {b['bin_id']}<br>Status:{b['status']}<br>Fill:{b['fill_percentage']}%<br>Battery:{b['battery']}V"
+        ).add_to(marker_cluster)
+
+    # Draw route
+    route = optimize_route()
+    if route:
+        coords = [(b['lat'], b['lng']) for b in route]
+        folium.PolyLine(coords, color='blue', weight=3).add_to(m)
+
+    return m._repr_html_()
+
+if __name__=="__main__":
+    app.run(debug=True)
