@@ -1,0 +1,17 @@
+v3/<app-id>@ttn/devices/<dev-id>/up
+
+
+{
+  "uplink_message": {
+    "decoded_payload": {
+      "bin_id": "BIN042",
+      "status": "Y",
+      "fill_percentage": 78,
+      "battery": 3.4,
+      "lat": 12.98,
+      "lng": 77.60
+    },
+    "rx_metadata": [...],
+    "settings": {...}
+  }
+}
