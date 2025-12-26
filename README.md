@@ -99,15 +99,5 @@ The **Smart Waste Bin IoT System** is a complete solution for **real-time monito
 
 ---
 
-## 📸 Screenshots
 
-*Add images of STM32 nodes, dashboard map, and optimized routes here.*
-
----
-
-## 📂 Repository Structure
-
-
-
-## 🔄 Data Flow
 
