@@ -1,0 +1,16 @@
+#ifndef FILL_LEVEL_H
+#define FILL_LEVEL_H
+
+float Calculate_Fill_Percentage(float distance_cm);
+
+#endif
+ #include "fill_level.h"
+#include "fault.h"
+
+float Calculate_Fill_Percentage(float distance_cm)
+{
+    float fill = ((BIN_HEIGHT_CM - distance_cm) / BIN_HEIGHT_CM) * 100.0f;
+    if (fill < 0.0f) fill = 0.0f;
+    else if (fill > 100.0f) fill = 100.0f;
+    return fill;
+}
