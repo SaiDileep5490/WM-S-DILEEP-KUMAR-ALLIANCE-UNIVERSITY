@@ -1,0 +1,39 @@
+#ifndef FILTER_H
+#define FILTER_H
+
+#include <stdint.h>
+
+#define FILTER_SIZE 5
+
+float Median_Filter(float *buffer);
+
+#endif
+
+
+#include "filter.h"
+
+static void sort(float *arr, uint8_t size)
+{
+    float temp;
+    for (uint8_t i = 0; i < size - 1; i++)
+    {
+        for (uint8_t j = i + 1; j < size; j++)
+        {
+            if (arr[i] > arr[j])
+            {
+                temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
+    }
+}
+
+float Median_Filter(float *buffer)
+{
+    float temp[FILTER_SIZE];
+    for (uint8_t i = 0; i < FILTER_SIZE; i++)
+        temp[i] = buffer[i];
+    sort(temp, FILTER_SIZE);
+    return temp[FILTER_SIZE / 2];
+}
