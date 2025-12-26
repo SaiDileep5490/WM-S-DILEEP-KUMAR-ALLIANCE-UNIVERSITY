@@ -1,0 +1,40 @@
+#ifndef PACKET_H
+#define PACKET_H
+
+#include "status.h"
+
+void Build_Packet(char *buffer,
+                  const char *bin_id,
+                  BinStatus_t status,
+                  float fill_percentage,
+                  float battery_voltage);
+
+#endif
+
+
+#include "packet.h"
+#include <stdio.h>
+
+void Build_Packet(char *buffer,
+                  const char *bin_id,
+                  BinStatus_t status,
+                  float fill_percentage,
+                  float battery_voltage)
+{
+    char status_char;
+    switch (status)
+    {
+        case BIN_GREEN:  status_char = 'G'; break;
+        case BIN_YELLOW: status_char = 'Y'; break;
+        case BIN_RED:    status_char = 'R'; break;
+        case BIN_FAULT:  status_char = 'F'; break;
+        default:         status_char = 'U'; break;
+    }
+
+    int batt_scaled = (int)(battery_voltage * 10);
+    sprintf(buffer, "%s|%c|%d|%d",
+            bin_id,
+            status_char,
+            (int)fill_percentage,
+            batt_scaled);
+}
